@@ -1,2 +1,5 @@
 flask
-pycryptodome
+gunicorn
+sqlalchemy
+flask_sqlalchemy
+cryptography
