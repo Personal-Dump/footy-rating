@@ -1,9 +1,13 @@
 from flask import Flask, request, jsonify
 from encryption import encrypt_rating, decrypt_rating, encrypt_aes_key, decrypt_aes_key
 from database import SessionLocal, Rating
+from auth import auth_bp  # Import auth routes
 import os
 
 app = Flask(__name__)
+app.secret_key = "supersecretkey"  # Change this for production
+
+app.register_blueprint(auth_bp)  # Register authentication routes
 
 @app.route("/")
 def home():

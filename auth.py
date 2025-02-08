@@ -1,35 +1,45 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from database import get_db
-from models import User
-from passlib.hash import bcrypt
-import jwt
-import datetime
+from flask import Blueprint, request, jsonify, session
+from werkzeug.security import generate_password_hash, check_password_hash
+from database import SessionLocal, User
 
-SECRET_KEY = "your_secret_key_here"  # Change this for production
+auth_bp = Blueprint('auth', __name__)
 
-router = APIRouter()
+@auth_bp.route('/register', methods=['POST'])
+def register():
+    data = request.json
+    email = data.get("email")
+    password = data.get("password")
 
-# Signup API
-@router.post("/register/")
-def register(email: str, password: str, db: Session = Depends(get_db)):
-    existing_user = db.query(User).filter(User.email == email).first()
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
+    if not email or not password:
+        return jsonify({"error": "Missing email or password"}), 400
 
-    hashed_password = bcrypt.hash(password)
-    new_user = User(email=email, hashed_password=hashed_password)
+    db = SessionLocal()
+    
+    if db.query(User).filter_by(email=email).first():
+        db.close()
+        return jsonify({"error": "User already exists"}), 400
+
+    hashed_password = generate_password_hash(password)
+    new_user = User(email=email, password_hash=hashed_password)
+
     db.add(new_user)
     db.commit()
-    return {"message": "User registered successfully"}
+    db.close()
 
-# Login API
-@router.post("/login/")
-def login(email: str, password: str, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == email).first()
-    if not user or not bcrypt.verify(password, user.hashed_password):
-        raise HTTPException(status_code=401, detail="Invalid email or password")
+    return jsonify({"message": "User registered successfully"}), 201
 
-    token_data = {"sub": email, "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=1)}
-    token = jwt.encode(token_data, SECRET_KEY, algorithm="HS256")
-    return {"access_token": token, "token_type": "bearer"}
+@auth_bp.route('/login', methods=['POST'])
+def login():
+    data = request.json
+    email = data.get("email")
+    password = data.get("password")
+
+    db = SessionLocal()
+    user = db.query(User).filter_by(email=email).first()
+    db.close()
+
+    if not user or not check_password_hash(user.password_hash, password):
+        return jsonify({"error": "Invalid credentials"}), 401
+
+    session["user_id"] = user.id
+    return jsonify({"message": "Login successful"}), 200

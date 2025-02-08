@@ -3,3 +3,7 @@ gunicorn
 sqlalchemy
 flask_sqlalchemy
 cryptography
+Flask
+Flask-SQLAlchemy
+Flask-Login
+Werkzeug
