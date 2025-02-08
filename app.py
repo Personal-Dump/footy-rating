@@ -5,6 +5,10 @@ import os
 
 app = Flask(__name__)
 
+@app.route("/")
+def home():
+    return "Hello, Railway!"
+
 @app.route('/submit_rating', methods=['POST'])
 def submit_rating():
     try:
@@ -66,4 +70,6 @@ def get_rating(player_id):
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))  # Default to 5000 if Railway doesn't provide PORT
+    app.run(host="0.0.0.0", port=port)
+    # app.run(debug=True)
